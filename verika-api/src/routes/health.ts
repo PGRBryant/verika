@@ -47,7 +47,8 @@ export function registerHealthRoute(
       uptime: Math.floor((Date.now() - startTime) / 1000),
     };
 
-    const statusCode = overallStatus === 'ok' ? 200 : 503;
+    // Degraded = still operational but needs attention; don't trigger load balancer removal
+    const statusCode = overallStatus === 'unhealthy' ? 503 : 200;
     await reply.code(statusCode).send(response);
   });
 }

@@ -8,6 +8,7 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 interface ServicePolicy {
   service: string;
@@ -67,7 +68,7 @@ async function validatePolicy(filePath: string): Promise<void> {
   const fileName = path.basename(filePath);
   console.log(`\nValidating ${fileName}...`);
 
-  const module = (await import(filePath)) as { policy?: ServicePolicy };
+  const module = (await import(pathToFileURL(filePath).href)) as { policy?: ServicePolicy };
   const policy = module.policy;
 
   if (!policy) {
