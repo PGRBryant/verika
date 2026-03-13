@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "Identity and service mesh for internal service ecosystems",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "workspaces": [
     "packages/shared",
     "packages/sdk",

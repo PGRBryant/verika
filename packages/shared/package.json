@@ -7,5 +7,5 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit"
   },
-  "license": "MIT"
+  "license": "Apache-2.0"
 }
