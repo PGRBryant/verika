@@ -17,6 +17,11 @@ export function registerHealthRoute(
   app: FastifyInstance,
   services: HealthServices,
 ): void {
+  // Lightweight startup/readiness probe — just confirms the process is alive
+  app.get('/ready', async (_req, reply) => {
+    await reply.code(200).send({ status: 'ok' });
+  });
+
   app.get('/health', async (_req, reply) => {
     const [firestoreHealth, redisHealth, kmsHealth] = await Promise.all([
       services.registry.checkHealth(),

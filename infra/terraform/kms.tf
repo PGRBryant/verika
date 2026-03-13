@@ -13,7 +13,9 @@ resource "google_kms_crypto_key" "token_signing_key" {
     protection_level = "HSM"
   }
 
-  rotation_period = "7776000s" # 90 days
+  # Asymmetric signing keys don't support automatic rotation.
+  # Rotate manually via: gcloud kms keys versions create ...
+  # Architecture calls for 90-day manual rotation cadence.
 
   lifecycle {
     prevent_destroy = true

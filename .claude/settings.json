@@ -3,7 +3,10 @@
     "allow": [
       "Bash(find /c/Users/pgrbr/Code/verika -name *.ts -o -name *.json -o -name *.tf -o -name *.yml -o -name *.md)",
       "Bash(find /c/Users/pgrbr/Code/verika -name *.ts -o -name *.tf -o -name *.yml -o -name *.md -o -name Dockerfile -o -name *.json)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(npm ls:*)"
     ]
   }
 }

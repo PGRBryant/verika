@@ -16,14 +16,15 @@ resource "google_compute_subnetwork" "verika_subnet" {
 
 # ─── VPC Peering: verika-vpc ↔ room404-vpc (for Redis) ─────────────────────
 
-resource "google_compute_network_peering" "verika_to_room404" {
-  name         = "verika-to-room404"
-  network      = google_compute_network.verika_vpc.self_link
-  peer_network = var.room404_vpc_network
-
-  export_custom_routes = false
-  import_custom_routes = false
-}
+# VPC peering to room404 — uncomment when room404-prod project exists
+# resource "google_compute_network_peering" "verika_to_room404" {
+#   name         = "verika-to-room404"
+#   network      = google_compute_network.verika_vpc.self_link
+#   peer_network = var.room404_vpc_network
+#
+#   export_custom_routes = false
+#   import_custom_routes = false
+# }
 
 # NOTE: The reverse peering (room404 → verika) must be created in the
 # room404-prod project's Terraform configuration.

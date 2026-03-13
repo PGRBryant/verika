@@ -4,7 +4,7 @@ resource "google_cloud_run_v2_service" "verika_api" {
 
   template {
     scaling {
-      min_instance_count = 2   # Never scale to zero — auth is critical
+      min_instance_count = 0   # Scale to zero until Redis/VPC peering is live; bump to 2 after
       max_instance_count = 10
     }
 
@@ -64,12 +64,12 @@ resource "google_cloud_run_v2_service" "verika_api" {
 
       startup_probe {
         http_get {
-          path = "/health"
+          path = "/ready"
           port = 8080
         }
         initial_delay_seconds = 5
         period_seconds        = 5
-        failure_threshold     = 3
+        failure_threshold     = 6
       }
 
       liveness_probe {
