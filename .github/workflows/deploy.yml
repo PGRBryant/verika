@@ -1,0 +1,85 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+env:
+  PROJECT_ID: verika-prod
+  REGION: us-east1
+  SERVICE_NAME: verika-api
+  IMAGE: us-east1-docker.pkg.dev/verika-prod/verika-images/verika-api
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: verika-api@verika-prod.iam.gserviceaccount.com
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t ${{ env.IMAGE }}:${{ github.sha }} \
+            -t ${{ env.IMAGE }}:latest \
+            -f verika-api/Dockerfile \
+            .
+
+      - name: Push to Artifact Registry
+        run: |
+          docker push ${{ env.IMAGE }}:${{ github.sha }}
+          docker push ${{ env.IMAGE }}:latest
+
+      - name: Deploy to Cloud Run
+        id: deploy
+        run: |
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image ${{ env.IMAGE }}:${{ github.sha }} \
+            --region ${{ env.REGION }} \
+            --platform managed \
+            --quiet
+
+      - name: Smoke test
+        run: |
+          SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --region ${{ env.REGION }} \
+            --format 'value(status.url)')
+
+          HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${SERVICE_URL}/health")
+
+          if [ "$HEALTH_STATUS" != "200" ]; then
+            echo "Smoke test failed with status $HEALTH_STATUS"
+            echo "Rolling back to previous revision..."
+
+            PREV_REVISION=$(gcloud run revisions list \
+              --service ${{ env.SERVICE_NAME }} \
+              --region ${{ env.REGION }} \
+              --format 'value(REVISION)' \
+              --limit 2 | tail -n 1)
+
+            gcloud run services update-traffic ${{ env.SERVICE_NAME }} \
+              --region ${{ env.REGION }} \
+              --to-revisions "${PREV_REVISION}=100"
+
+            exit 1
+          fi
+
+          echo "Smoke test passed"

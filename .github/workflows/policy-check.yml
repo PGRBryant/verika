@@ -1,0 +1,97 @@
+name: Policy Change Review
+
+on:
+  pull_request:
+    paths: ['policies/**']
+
+jobs:
+  review:
+    name: Review Policy Changes
+    runs-on: ubuntu-latest
+
+    permissions:
+      pull-requests: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Analyze policy changes
+        id: analyze
+        run: |
+          # Get changed policy files
+          CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }}..HEAD -- policies/)
+
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "comment=No policy files changed." >> $GITHUB_OUTPUT
+            echo "needs_review=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Build analysis comment
+          COMMENT="## Policy Change Analysis\n\n"
+          NEEDS_REVIEW="false"
+
+          for FILE in $CHANGED_FILES; do
+            SERVICE=$(basename "$FILE" .policy.ts)
+            COMMENT+="### ${SERVICE}\n\n"
+
+            # Check for new capability grants
+            NEW_CAPS=$(git diff ${{ github.event.pull_request.base.sha }}..HEAD -- "$FILE" | grep "^+" | grep -o "'[a-z.]*'" | sort -u || true)
+            REMOVED_CAPS=$(git diff ${{ github.event.pull_request.base.sha }}..HEAD -- "$FILE" | grep "^-" | grep -o "'[a-z.]*'" | sort -u || true)
+
+            if [ -n "$NEW_CAPS" ]; then
+              COMMENT+="**Capabilities added:**\n"
+              for CAP in $NEW_CAPS; do
+                COMMENT+="- ${CAP}\n"
+              done
+              NEEDS_REVIEW="true"
+            fi
+
+            if [ -n "$REMOVED_CAPS" ]; then
+              COMMENT+="**Capabilities removed:**\n"
+              for CAP in $REMOVED_CAPS; do
+                COMMENT+="- ${CAP}\n"
+              done
+            fi
+
+            COMMENT+="\n"
+          done
+
+          if [ "$NEEDS_REVIEW" = "true" ]; then
+            COMMENT+="> **Capability grants have been widened.** This PR requires platform team approval.\n"
+          fi
+
+          # Write to file to handle multiline
+          echo "$COMMENT" > /tmp/policy-comment.md
+          echo "needs_review=$NEEDS_REVIEW" >> $GITHUB_OUTPUT
+
+      - name: Comment on PR
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body-path: /tmp/policy-comment.md
+
+      - name: Add review label
+        if: steps.analyze.outputs.needs_review == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ['policy-review-required']
+            });

@@ -1,0 +1,32 @@
+{
+  "name": "verika",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Identity and service mesh for internal service ecosystems",
+  "license": "MIT",
+  "workspaces": [
+    "packages/shared",
+    "packages/sdk",
+    "verika-api"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "lint": "eslint . --ext .ts",
+    "typecheck": "tsc --build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "seed": "npx tsx scripts/seed-registry.ts",
+    "policy:validate": "npx tsx scripts/validate-policies.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "eslint": "^8.56.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

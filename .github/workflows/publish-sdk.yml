@@ -1,0 +1,57 @@
+name: Publish SDK
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  publish:
+    name: Publish @internal/verika
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          registry-url: 'https://npm.pkg.github.com'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build shared types
+        run: npm run build --workspace=@internal/verika-shared
+
+      - name: Build SDK
+        run: npm run build --workspace=@internal/verika
+
+      - name: Publish to GitHub Packages
+        run: npm publish --workspace=@internal/verika
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify consuming projects
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.DISPATCH_TOKEN }}
+          event-type: verika-sdk-published
+          client-payload: '{"version": "${{ github.ref_name }}"}'
+          repository: ${{ github.repository_owner }}/room404
+        continue-on-error: true
+
+      - name: Notify MystWeaver
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.DISPATCH_TOKEN }}
+          event-type: verika-sdk-published
+          client-payload: '{"version": "${{ github.ref_name }}"}'
+          repository: ${{ github.repository_owner }}/mystweaver
+        continue-on-error: true
