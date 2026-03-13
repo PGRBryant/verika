@@ -55,7 +55,7 @@ export const verikaPlugin = fp(
       }
 
       // Skip auth for explicitly opted-out routes
-      const routeConfig = req.routeOptions?.config as Record<string, unknown> | undefined;
+      const routeConfig = req.routeOptions?.config as unknown as Record<string, unknown> | undefined;
       if (routeConfig?.['verika'] === false) {
         return;
       }

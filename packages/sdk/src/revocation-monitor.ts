@@ -1,4 +1,4 @@
-import pino from 'pino';
+import { type Logger } from 'pino';
 import { initiateGracefulShutdown } from './graceful-shutdown.js';
 
 const DEFAULT_CHECK_INTERVAL_MS = 60_000; // 60 seconds
@@ -8,12 +8,12 @@ export class RevocationMonitor {
   private readonly serviceId: string;
   private readonly verikaEndpoint: string;
   private readonly checkIntervalMs: number;
-  private readonly logger: pino.Logger;
+  private readonly logger: Logger;
 
   constructor(
     serviceId: string,
     verikaEndpoint: string,
-    logger: pino.Logger,
+    logger: Logger,
     checkIntervalMs?: number,
   ) {
     this.serviceId = serviceId;

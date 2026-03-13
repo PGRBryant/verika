@@ -1,5 +1,5 @@
 import * as jose from 'jose';
-import pino from 'pino';
+import { pino, type Logger } from 'pino';
 import type {
   VerikaClientOptions,
   ValidatedServiceIdentity,
@@ -29,7 +29,7 @@ export class VerikaClient {
   private readonly jwksCache: JWKSCache;
   private readonly revocationChecker: RevocationChecker;
   private readonly revocationMonitor: RevocationMonitor;
-  private readonly logger: pino.Logger;
+  private readonly logger: Logger;
   private initialized = false;
 
   constructor(options: VerikaClientOptions) {

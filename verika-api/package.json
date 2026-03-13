@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@internal/verika-shared": "workspace:*",
+    "@internal/verika-shared": "1.0.0",
     "@google-cloud/firestore": "^7.3.0",
     "@google-cloud/kms": "^4.1.0",
     "fastify": "^4.25.0",

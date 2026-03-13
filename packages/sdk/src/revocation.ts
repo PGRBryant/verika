@@ -1,5 +1,5 @@
-import Redis from 'ioredis';
-import pino from 'pino';
+import { Redis as IORedis } from 'ioredis';
+import { type Logger } from 'pino';
 
 // TODO(verika-v2): Fail closed when service handles operations sensitive
 // enough to trade availability for security. Not warranted in V1.
@@ -10,19 +10,19 @@ const REVOKED_PREFIX = 'verika:revoked:';
 export type RevocationStatus = 'active' | 'revoked' | 'expired' | 'unknown';
 
 export class RevocationChecker {
-  private redis: Redis | null = null;
+  private redis: IORedis | null = null;
   private readonly redisHost: string;
   private readonly redisPort: number;
-  private readonly logger: pino.Logger;
+  private readonly logger: Logger;
 
-  constructor(redisHost: string, redisPort: number, logger: pino.Logger) {
+  constructor(redisHost: string, redisPort: number, logger: Logger) {
     this.redisHost = redisHost;
     this.redisPort = redisPort;
     this.logger = logger.child({ component: 'revocation-checker' });
   }
 
   async initialize(): Promise<void> {
-    this.redis = new Redis({
+    const client = new IORedis({
       host: this.redisHost,
       port: this.redisPort,
       retryStrategy: (times: number) => {
@@ -32,15 +32,17 @@ export class RevocationChecker {
       lazyConnect: true,
     });
 
-    this.redis.on('error', (err) => {
+    client.on('error', (err: Error) => {
       this.logger.error({ err }, 'Redis connection error');
     });
 
     try {
-      await this.redis.connect();
+      await client.connect();
     } catch (err) {
       this.logger.warn({ err }, 'Redis connect failed — revocation checks will fail open');
     }
+
+    this.redis = client;
   }
 
   /**

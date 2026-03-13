@@ -1,5 +1,5 @@
 import { OAuth2Client } from 'google-auth-library';
-import pino from 'pino';
+import { pino, type Logger } from 'pino';
 import type { VerikaApiConfig } from '../config.js';
 
 const SA_EMAIL_PATTERN = /^(.+)@(.+)\.iam\.gserviceaccount\.com$/;
@@ -21,7 +21,7 @@ export interface GcpIdentity {
 
 export class GcpAuthService {
   private readonly oauthClient: OAuth2Client;
-  private readonly logger: pino.Logger;
+  private readonly logger: Logger;
 
   constructor(_config: VerikaApiConfig) {
     this.oauthClient = new OAuth2Client();

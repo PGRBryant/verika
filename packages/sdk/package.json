@@ -14,7 +14,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@internal/verika-shared": "workspace:*",
+    "@internal/verika-shared": "1.0.0",
     "ioredis": "^5.3.0",
     "jose": "^5.2.0",
     "pino": "^8.17.0",

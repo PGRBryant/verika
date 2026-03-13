@@ -1,4 +1,4 @@
-import type pino from 'pino';
+import { type Logger } from 'pino';
 
 const DRAIN_TIMEOUT_MS = 30_000; // 30 seconds for in-flight requests
 
@@ -18,7 +18,7 @@ export function isInShutdown(): boolean {
  * 2. Wait 30s for in-flight requests to drain
  * 3. Exit process with code 1 (Cloud Run restarts with clean state)
  */
-export async function initiateGracefulShutdown(logger: pino.Logger): Promise<void> {
+export async function initiateGracefulShutdown(logger: Logger): Promise<void> {
   if (isShuttingDown) return;
 
   isShuttingDown = true;

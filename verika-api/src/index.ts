@@ -1,5 +1,4 @@
 import Fastify from 'fastify';
-import pino from 'pino';
 import { loadConfig } from './config.js';
 import { registerTokenRoutes } from './routes/tokens.js';
 import { registerServiceRoutes } from './routes/services.js';
@@ -12,14 +11,11 @@ import { GcpAuthService } from './services/gcp-auth.js';
 
 const config = loadConfig();
 
-const logger = pino({
-  level: process.env['LOG_LEVEL'] ?? 'info',
-  formatters: {
-    level: (label) => ({ level: label }),
+const app = Fastify({
+  logger: {
+    level: process.env['LOG_LEVEL'] ?? 'info',
   },
 });
-
-const app = Fastify({ logger });
 
 const registry = new RegistryService(config);
 const tokenSigner = new TokenSignerService(config);
@@ -36,15 +32,15 @@ registerServiceRoutes(app, services);
 async function start(): Promise<void> {
   try {
     await app.listen({ port: config.port, host: '0.0.0.0' });
-    logger.info({ port: config.port, environment: config.environment }, 'Verika API started');
+    app.log.info({ port: config.port, environment: config.environment }, 'Verika API started');
   } catch (err) {
-    logger.fatal(err, 'Failed to start Verika API');
+    app.log.fatal(err, 'Failed to start Verika API');
     process.exit(1);
   }
 }
 
 async function shutdown(signal: string): Promise<void> {
-  logger.info({ signal }, 'Shutting down Verika API');
+  app.log.info({ signal }, 'Shutting down Verika API');
   await app.close();
   await revocation.close();
   process.exit(0);

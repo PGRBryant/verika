@@ -1,4 +1,4 @@
-import pino from 'pino';
+import { type Logger } from 'pino';
 
 const REFRESH_BEFORE_EXPIRY_MS = 3 * 60 * 1000; // 3 minutes before TTL
 const MAX_BACKOFF_RETRIES = 5;
@@ -19,10 +19,10 @@ export class TokenCache {
   private degradedTimer: ReturnType<typeof setInterval> | null = null;
   private consecutiveFailures = 0;
   private isDegraded = false;
-  private readonly logger: pino.Logger;
+  private readonly logger: Logger;
   private readonly fetchToken: TokenFetcher;
 
-  constructor(fetchToken: TokenFetcher, logger: pino.Logger) {
+  constructor(fetchToken: TokenFetcher, logger: Logger) {
     this.fetchToken = fetchToken;
     this.logger = logger.child({ component: 'token-cache' });
   }

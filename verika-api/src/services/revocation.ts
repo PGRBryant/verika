@@ -1,5 +1,5 @@
-import Redis from 'ioredis';
-import pino from 'pino';
+import { Redis } from 'ioredis';
+import { pino, type Logger } from 'pino';
 import type { VerikaApiConfig } from '../config.js';
 
 // TODO(verika-v2): Dedicated Redis instance in verika-prod when revocation
@@ -14,7 +14,7 @@ export type RevocationStatus = 'active' | 'revoked' | 'expired';
 
 export class RevocationService {
   private readonly redis: Redis;
-  private readonly logger: pino.Logger;
+  private readonly logger: Logger;
 
   constructor(config: VerikaApiConfig) {
     this.logger = pino({ name: 'revocation-service' });
@@ -29,7 +29,7 @@ export class RevocationService {
       lazyConnect: true,
     });
 
-    this.redis.on('error', (err) => {
+    this.redis.on('error', (err: Error) => {
       this.logger.error({ err }, 'Redis connection error');
     });
   }

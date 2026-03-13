@@ -1,5 +1,5 @@
 import * as jose from 'jose';
-import pino from 'pino';
+import { type Logger } from 'pino';
 
 const JWKS_REFRESH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -8,9 +8,9 @@ export class JWKSCache {
   private previousKeySet: jose.JSONWebKeySet | null = null;
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
   private readonly verikaEndpoint: string;
-  private readonly logger: pino.Logger;
+  private readonly logger: Logger;
 
-  constructor(verikaEndpoint: string, logger: pino.Logger) {
+  constructor(verikaEndpoint: string, logger: Logger) {
     this.verikaEndpoint = verikaEndpoint;
     this.logger = logger.child({ component: 'jwks-cache' });
   }
