@@ -33,7 +33,12 @@ jobs:
       - name: Build SDK
         run: npm run build --workspace=@internal/verika
 
-      - name: Publish to GitHub Packages
+      - name: Publish shared types to GitHub Packages
+        run: npm publish --workspace=@internal/verika-shared
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish SDK to GitHub Packages
         run: npm publish --workspace=@internal/verika
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
