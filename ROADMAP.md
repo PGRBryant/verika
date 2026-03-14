@@ -22,18 +22,18 @@ This roadmap tracks the phased rollout of Verika across the ecosystem. V1 is the
 
 ## Phase 1 — Verika Live, Observation Mode
 
-**Status**: Security foundations complete. Core deployment pending (infrastructure + operational).
+**Status**: Security foundations complete. Core deployment complete (infrastructure live, pending Phase 0 in consuming services).
 
 **Goal**: Verika API running in production with correct security foundations. SDK imported and instantiated. Logging what it *would* do without enforcing anything.
 
 ### Core deployment (operational — requires live GCP infrastructure)
 - [x] Deploy Verika API to Cloud Run (`verika-490105` project)
-- [ ] Provision GCP infrastructure via Terraform (KMS, Firestore, VPC peering)
-- [ ] Seed service registry with all 5 services
+- [x] Provision GCP infrastructure via Terraform (KMS, Firestore, VPC connector) — Redis pending VPC peering with room404
+- [x] Seed service registry with all 5 services
 - [ ] Run `verika.ready()` in each service at startup
 - [ ] SDK logs authentication decisions but does **not** enforce them
-- [ ] Verify audit log populates correctly
-- [ ] Monitor health endpoint and alerting
+- [x] Verify audit log populates correctly
+- [x] Monitor health endpoint and alerting (uptime check + email alerts configured)
 
 ### Security foundations (must ship with Phase 1)
 - [x] **Fix SDK identity bootstrap**: `VerikaClient.fetchServiceToken()` attaches a GCP identity token via metadata server. GCP auth validates audience matches `VERIKA_SELF_URL`.
@@ -111,7 +111,7 @@ This means Room 404 and MystWeaver never need human token validation — they al
 
 - [ ] Varunai registered in Verika registry (already seeded)
 - [ ] `flag.write` capability granted to Varunai in MystWeaver policy
-- [ ] IAM binding active: `varunai@varunai-prod` → Verika Cloud Run invoker
+- [ ] IAM binding active: `varunai-api@varunai-490119` → Verika Cloud Run invoker
 - [ ] Varunai can begin development against live Verika instance
 - [ ] Varunai scrapes MystWeaver `/metrics` with Verika token
 - [ ] Varunai subscribes to MystWeaver SSE with Verika token

@@ -52,5 +52,5 @@ resource "google_cloud_run_v2_service_iam_member" "varunai_invoker" {
   name     = google_cloud_run_v2_service.verika_api.name
   location = var.region
   role     = "roles/run.invoker"
-  member   = "serviceAccount:varunai@varunai-490119.iam.gserviceaccount.com"
+  member   = "serviceAccount:varunai-api@varunai-490119.iam.gserviceaccount.com"
 }

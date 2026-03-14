@@ -74,10 +74,12 @@ resource "google_cloud_run_v2_service" "verika_api" {
 
       liveness_probe {
         http_get {
-          path = "/health"
+          path = "/ready"
           port = 8080
         }
-        period_seconds = 30
+        period_seconds        = 30
+        timeout_seconds       = 5
+        failure_threshold     = 3
       }
     }
 
