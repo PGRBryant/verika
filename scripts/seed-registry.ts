@@ -8,7 +8,7 @@
 import { Firestore } from '@google-cloud/firestore';
 import type { ServiceRegistration } from '@internal/verika-shared';
 
-const PROJECT_ID = process.env['GCP_PROJECT_ID'] ?? 'verika-prod';
+const PROJECT_ID = process.env['GCP_PROJECT_ID'] ?? 'verika-490105';
 const DATABASE_ID = process.env['FIRESTORE_DATABASE'] ?? 'verika-registry';
 const COLLECTION = 'service_registry';
 
@@ -46,7 +46,7 @@ const services: ServiceRegistration[] = [
   {
     id: 'room404-game-server',
     displayName: 'Room 404 Game Server',
-    project: 'room404-prod',
+    project: 'room404-490104',
     owner: 'eng@demo.com',
     status: 'active',
     endpoints: {
@@ -72,7 +72,7 @@ const services: ServiceRegistration[] = [
   {
     id: 'room404-ai-service',
     displayName: 'Room 404 AI Service',
-    project: 'room404-prod',
+    project: 'room404-490104',
     owner: 'eng@demo.com',
     status: 'active',
     endpoints: {
@@ -96,7 +96,7 @@ const services: ServiceRegistration[] = [
   {
     id: 'varunai',
     displayName: 'Varunai Observability Hub',
-    project: 'varunai-prod',
+    project: 'varunai-490119',
     owner: 'eng@demo.com',
     status: 'active',
     endpoints: {
@@ -119,7 +119,7 @@ const services: ServiceRegistration[] = [
   {
     id: 'verika',
     displayName: 'Verika Identity Service',
-    project: 'verika-prod',
+    project: 'verika-490105',
     owner: 'eng@demo.com',
     status: 'active',
     endpoints: {

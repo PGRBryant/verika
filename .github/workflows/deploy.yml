@@ -2,13 +2,13 @@ name: Deploy
 
 on:
   push:
-    branches: [main]
+    branches: [master]
 
 env:
-  PROJECT_ID: verika-prod
+  PROJECT_ID: verika-490105
   REGION: us-east1
   SERVICE_NAME: verika-api
-  IMAGE: us-east1-docker.pkg.dev/verika-prod/verika-images/verika-api
+  IMAGE: us-east1-docker.pkg.dev/verika-490105/verika-images/verika-api
 
 jobs:
   deploy:
@@ -27,7 +27,7 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
-          service_account: verika-api@verika-prod.iam.gserviceaccount.com
+          service_account: verika-api@verika-490105.iam.gserviceaccount.com
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
@@ -55,6 +55,7 @@ jobs:
             --image ${{ env.IMAGE }}:${{ github.sha }} \
             --region ${{ env.REGION }} \
             --platform managed \
+            --update-env-vars "VERIKA_SELF_URL=${{ secrets.VERIKA_SELF_URL }},GOOGLE_OAUTH_CLIENT_ID=${{ secrets.GOOGLE_OAUTH_CLIENT_ID }},VERIKA_ALLOWED_HUMAN_DOMAINS=${{ secrets.VERIKA_ALLOWED_HUMAN_DOMAINS }}" \
             --quiet
 
       - name: Smoke test
@@ -63,7 +64,7 @@ jobs:
             --region ${{ env.REGION }} \
             --format 'value(status.url)')
 
-          HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${SERVICE_URL}/health")
+          HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${SERVICE_URL}/ready")
 
           if [ "$HEALTH_STATUS" != "200" ]; then
             echo "Smoke test failed with status $HEALTH_STATUS"

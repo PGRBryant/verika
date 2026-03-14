@@ -27,7 +27,7 @@ This roadmap tracks the phased rollout of Verika across the ecosystem. V1 is the
 **Goal**: Verika API running in production with correct security foundations. SDK imported and instantiated. Logging what it *would* do without enforcing anything.
 
 ### Core deployment (operational — requires live GCP infrastructure)
-- [ ] Deploy Verika API to Cloud Run (`verika-prod` project)
+- [x] Deploy Verika API to Cloud Run (`verika-490105` project)
 - [ ] Provision GCP infrastructure via Terraform (KMS, Firestore, VPC peering)
 - [ ] Seed service registry with all 5 services
 - [ ] Run `verika.ready()` in each service at startup
@@ -194,12 +194,12 @@ npx tsx scripts/seed-registry.ts
 docker build -t verika-api -f verika-api/Dockerfile .
 
 # Push to Artifact Registry
-docker tag verika-api us-east1-docker.pkg.dev/verika-prod/verika-images/verika-api:latest
-docker push us-east1-docker.pkg.dev/verika-prod/verika-images/verika-api:latest
+docker tag verika-api us-east1-docker.pkg.dev/verika-490105/verika-images/verika-api:latest
+docker push us-east1-docker.pkg.dev/verika-490105/verika-images/verika-api:latest
 
 # Deploy to Cloud Run
 gcloud run deploy verika-api \
-  --image us-east1-docker.pkg.dev/verika-prod/verika-images/verika-api:latest \
+  --image us-east1-docker.pkg.dev/verika-490105/verika-images/verika-api:latest \
   --region us-east1 \
   --platform managed
 ```

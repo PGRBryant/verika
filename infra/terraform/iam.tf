@@ -34,25 +34,23 @@ resource "google_cloud_run_v2_service_iam_member" "mystweaver_invoker" {
   member   = "serviceAccount:mystweaver-api@mystweaver-489920.iam.gserviceaccount.com"
 }
 
-# Uncomment when room404-prod and varunai-prod projects exist:
-#
-# resource "google_cloud_run_v2_service_iam_member" "room404_game_server_invoker" {
-#   name     = google_cloud_run_v2_service.verika_api.name
-#   location = var.region
-#   role     = "roles/run.invoker"
-#   member   = "serviceAccount:room404-game-server@room404-prod.iam.gserviceaccount.com"
-# }
-#
-# resource "google_cloud_run_v2_service_iam_member" "room404_ai_service_invoker" {
-#   name     = google_cloud_run_v2_service.verika_api.name
-#   location = var.region
-#   role     = "roles/run.invoker"
-#   member   = "serviceAccount:room404-ai-service@room404-prod.iam.gserviceaccount.com"
-# }
-#
-# resource "google_cloud_run_v2_service_iam_member" "varunai_invoker" {
-#   name     = google_cloud_run_v2_service.verika_api.name
-#   location = var.region
-#   role     = "roles/run.invoker"
-#   member   = "serviceAccount:varunai@varunai-prod.iam.gserviceaccount.com"
-# }
+resource "google_cloud_run_v2_service_iam_member" "room404_game_server_invoker" {
+  name     = google_cloud_run_v2_service.verika_api.name
+  location = var.region
+  role     = "roles/run.invoker"
+  member   = "serviceAccount:room404-game-server@room404-490104.iam.gserviceaccount.com"
+}
+
+resource "google_cloud_run_v2_service_iam_member" "room404_ai_service_invoker" {
+  name     = google_cloud_run_v2_service.verika_api.name
+  location = var.region
+  role     = "roles/run.invoker"
+  member   = "serviceAccount:room404-ai-service@room404-490104.iam.gserviceaccount.com"
+}
+
+resource "google_cloud_run_v2_service_iam_member" "varunai_invoker" {
+  name     = google_cloud_run_v2_service.verika_api.name
+  location = var.region
+  role     = "roles/run.invoker"
+  member   = "serviceAccount:varunai@varunai-490119.iam.gserviceaccount.com"
+}
