@@ -59,13 +59,18 @@ export class RevocationService {
 
     const pipeline = this.redis.pipeline();
     for (const jti of jtis) {
-      // Set revoked with 15-minute TTL (max remaining token lifetime)
-      pipeline.set(`${REVOKED_PREFIX}${jti}`, '1', 'EX', 900);
+      // Set revoked with 60-minute TTL (covers longest-lived token: human tokens at 3600s)
+      pipeline.set(`${REVOKED_PREFIX}${jti}`, '1', 'EX', 3600);
     }
     await pipeline.exec();
 
     this.logger.warn({ serviceId, count: jtis.length }, 'All service tokens revoked');
     return jtis.length;
+  }
+
+  /** Check if a token belongs to a specific service */
+  async isTokenOwnedBy(jti: string, serviceId: string): Promise<boolean> {
+    return (await this.redis.sismember(`${SERVICE_TOKENS_PREFIX}${serviceId}`, jti)) === 1;
   }
 
   /** Check token revocation status */

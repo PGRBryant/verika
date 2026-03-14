@@ -142,22 +142,24 @@ export class VerikaClient {
       throw new VerikaError('VERIKA_TOKEN_INVALID_SIGNATURE', 'Invalid token signature');
     }
 
-    // Check revocation
-    const jti = payload['jti'] as string;
-    if (jti) {
-      const status = await this.revocationChecker.check(jti);
-      if (status === 'revoked') {
-        throw new VerikaError('VERIKA_TOKEN_REVOKED', `Token ${jti} has been revoked`);
-      }
-      if (status === 'expired') {
-        throw new VerikaError('VERIKA_TOKEN_EXPIRED', `Token ${jti} has expired`);
-      }
-      if (status === 'unknown' && this.options.revocationFailMode === 'closed') {
-        throw new VerikaError(
-          'VERIKA_REVOCATION_UNAVAILABLE',
-          `Revocation check unavailable for ${jti} and service is configured to fail closed`,
-        );
-      }
+    // All Verika tokens must have jti — reject tokens without one
+    const jti = payload['jti'] as string | undefined;
+    if (!jti) {
+      throw new VerikaError('VERIKA_TOKEN_INVALID_SIGNATURE', 'Token missing required jti claim');
+    }
+
+    const status = await this.revocationChecker.check(jti);
+    if (status === 'revoked') {
+      throw new VerikaError('VERIKA_TOKEN_REVOKED', `Token ${jti} has been revoked`);
+    }
+    if (status === 'expired') {
+      throw new VerikaError('VERIKA_TOKEN_EXPIRED', `Token ${jti} has expired`);
+    }
+    if (status === 'unknown' && this.options.revocationFailMode === 'closed') {
+      throw new VerikaError(
+        'VERIKA_REVOCATION_UNAVAILABLE',
+        `Revocation check unavailable for ${jti} and service is configured to fail closed`,
+      );
     }
 
     const serviceId = payload['sub'] as string;
@@ -175,7 +177,7 @@ export class VerikaClient {
       version: payload['ver'] as string,
       project: payload['proj'] as string,
       capabilities: (payload['caps'] as string[]) ?? [],
-      tokenId: jti ?? '',
+      tokenId: jti,
       issuedAt: payload['iat'] as number,
       expiresAt: payload['exp'] as number,
     };
@@ -202,22 +204,24 @@ export class VerikaClient {
       throw new VerikaError('VERIKA_TOKEN_INVALID_SIGNATURE', 'Invalid token signature');
     }
 
-    // Check revocation (same path as service tokens)
-    const jti = payload['jti'] as string;
-    if (jti) {
-      const status = await this.revocationChecker.check(jti);
-      if (status === 'revoked') {
-        throw new VerikaError('VERIKA_TOKEN_REVOKED', `Human token ${jti} has been revoked`);
-      }
-      if (status === 'expired') {
-        throw new VerikaError('VERIKA_TOKEN_EXPIRED', `Human token ${jti} has expired`);
-      }
-      if (status === 'unknown' && this.options.revocationFailMode === 'closed') {
-        throw new VerikaError(
-          'VERIKA_REVOCATION_UNAVAILABLE',
-          `Revocation check unavailable for ${jti} and service is configured to fail closed`,
-        );
-      }
+    // All Verika tokens must have jti — reject tokens without one
+    const jti = payload['jti'] as string | undefined;
+    if (!jti) {
+      throw new VerikaError('VERIKA_TOKEN_INVALID_SIGNATURE', 'Token missing required jti claim');
+    }
+
+    const status = await this.revocationChecker.check(jti);
+    if (status === 'revoked') {
+      throw new VerikaError('VERIKA_TOKEN_REVOKED', `Human token ${jti} has been revoked`);
+    }
+    if (status === 'expired') {
+      throw new VerikaError('VERIKA_TOKEN_EXPIRED', `Human token ${jti} has expired`);
+    }
+    if (status === 'unknown' && this.options.revocationFailMode === 'closed') {
+      throw new VerikaError(
+        'VERIKA_REVOCATION_UNAVAILABLE',
+        `Revocation check unavailable for ${jti} and service is configured to fail closed`,
+      );
     }
 
     const roles = (payload['roles'] as string[]) ?? [];
@@ -233,7 +237,7 @@ export class VerikaClient {
       userId: payload['sub'] as string,
       email: payload['email'] as string,
       roles,
-      tokenId: jti ?? '',
+      tokenId: jti,
       issuedAt: payload['iat'] as number,
       expiresAt: payload['exp'] as number,
     };

@@ -77,16 +77,16 @@ describe('RevocationService', () => {
       expect(count).toBe(0);
     });
 
-    it('revokes all tokens with 15-minute TTL', async () => {
+    it('revokes all tokens with 60-minute TTL (covers longest-lived token)', async () => {
       mockRedis.smembers.mockResolvedValueOnce(['jti-1', 'jti-2', 'jti-3']);
 
       const count = await service.revokeAllServiceTokens('mystweaver-api');
 
       expect(count).toBe(3);
       expect(mockPipeline.set).toHaveBeenCalledTimes(3);
-      expect(mockPipeline.set).toHaveBeenCalledWith('verika:revoked:jti-1', '1', 'EX', 900);
-      expect(mockPipeline.set).toHaveBeenCalledWith('verika:revoked:jti-2', '1', 'EX', 900);
-      expect(mockPipeline.set).toHaveBeenCalledWith('verika:revoked:jti-3', '1', 'EX', 900);
+      expect(mockPipeline.set).toHaveBeenCalledWith('verika:revoked:jti-1', '1', 'EX', 3600);
+      expect(mockPipeline.set).toHaveBeenCalledWith('verika:revoked:jti-2', '1', 'EX', 3600);
+      expect(mockPipeline.set).toHaveBeenCalledWith('verika:revoked:jti-3', '1', 'EX', 3600);
     });
   });
 

@@ -34,7 +34,7 @@ describe('Capabilities', () => {
   it('AllCapabilities contains all domain groups', () => {
     expect(Object.keys(AllCapabilities)).toEqual([
       'Flag', 'Events', 'Content', 'Experiments', 'Audit',
-      'Metrics', 'Stream', 'Session', 'Identity', 'Registry',
+      'Metrics', 'Stream', 'Session', 'Dashboard', 'Identity', 'Registry',
     ]);
   });
 });

@@ -28,11 +28,12 @@ const verika = new VerikaClient({
 
 async function generateFlavorText(prompt: string): Promise<string> {
   const aiServiceUrl = await verika.serviceUrl('room404-ai-service');
+  const aiToken = await verika.serviceTokenFor('room404-ai-service');
 
   const response = await fetch(`${aiServiceUrl}/generate/flavor`, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${verika.serviceToken()}`,
+      Authorization: `Bearer ${aiToken}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ prompt }),

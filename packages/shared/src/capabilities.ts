@@ -27,6 +27,10 @@ export const STREAM_SUBSCRIBE = 'stream.subscribe' as const;
 // --- Session ---
 export const SESSION_READ = 'session.read' as const;
 export const SESSION_MANAGE = 'session.manage' as const;
+export const SESSION_CONTROL = 'session.control' as const;
+
+// --- Dashboard ---
+export const DASHBOARD_VIEW = 'dashboard.view' as const;
 
 // --- Identity ---
 export const IDENTITY_TOKEN_ISSUE = 'identity.token.issue' as const;
@@ -75,6 +79,11 @@ export const StreamCapabilities = {
 export const SessionCapabilities = {
   READ: SESSION_READ,
   MANAGE: SESSION_MANAGE,
+  CONTROL: SESSION_CONTROL,
+} as const;
+
+export const DashboardCapabilities = {
+  VIEW: DASHBOARD_VIEW,
 } as const;
 
 export const IdentityCapabilities = {
@@ -97,6 +106,7 @@ export const AllCapabilities = {
   Metrics: MetricsCapabilities,
   Stream: StreamCapabilities,
   Session: SessionCapabilities,
+  Dashboard: DashboardCapabilities,
   Identity: IdentityCapabilities,
   Registry: RegistryCapabilities,
 } as const;

@@ -2,10 +2,12 @@ import type { FastifyRequest, FastifyReply } from 'fastify';
 import * as jose from 'jose';
 import type { GcpAuthService } from '../services/gcp-auth.js';
 import type { TokenSignerService } from '../services/token-signer.js';
+import type { RevocationService } from '../services/revocation.js';
 
 export interface AuthServices {
   gcpAuth: GcpAuthService;
   tokenSigner: TokenSignerService;
+  revocation?: RevocationService;
 }
 
 /**
@@ -45,6 +47,16 @@ export function requireVerikaAuth(authServices: AuthServices) {
       const { payload } = await jose.jwtVerify(token, keySet, {
         issuer: 'verika',
       });
+
+      // Check revocation if revocation service is available
+      const jti = payload['jti'] as string | undefined;
+      if (jti && authServices.revocation) {
+        const status = await authServices.revocation.checkRevocation(jti);
+        if (status === 'revoked') {
+          await reply.code(401).send({ error: 'Token has been revoked' });
+          return;
+        }
+      }
 
       (req as FastifyRequest & { verikaIdentity: typeof payload }).verikaIdentity = payload;
     } catch {

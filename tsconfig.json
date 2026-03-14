@@ -20,5 +20,6 @@
     { "path": "./packages/sdk" },
     { "path": "./verika-api" }
   ],
+  "include": [],
   "exclude": ["node_modules", "dist"]
 }

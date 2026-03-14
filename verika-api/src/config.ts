@@ -12,6 +12,8 @@ export interface VerikaApiConfig {
   selfUrl: string;
   /** Allowed email domains for human token issuance. Empty array = all domains allowed. */
   allowedHumanDomains: string[];
+  /** Google OAuth client ID for audience validation on human token exchange. */
+  googleOAuthClientId: string;
 }
 
 export function loadConfig(): VerikaApiConfig {
@@ -28,5 +30,6 @@ export function loadConfig(): VerikaApiConfig {
     environment: (process.env['NODE_ENV'] as VerikaApiConfig['environment']) ?? 'development',
     selfUrl: process.env['VERIKA_SELF_URL'] ?? 'https://verika-api-prod.run.app',
     allowedHumanDomains: domainsEnv ? domainsEnv.split(',').map((d) => d.trim().toLowerCase()) : [],
+    googleOAuthClientId: process.env['GOOGLE_OAUTH_CLIENT_ID'] ?? '',
   };
 }

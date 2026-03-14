@@ -17,7 +17,10 @@ interface TokenServices {
   config: VerikaApiConfig;
 }
 
-const TOKEN_TTL_SECONDS = 900;
+const SERVICE_TOKEN_TTL_SECONDS = 900;
+const HUMAN_TOKEN_TTL_SECONDS = 3600;
+// Revocation entries must outlive the longest-lived token they could cover
+const MAX_TOKEN_TTL_SECONDS = HUMAN_TOKEN_TTL_SECONDS;
 
 // --- JSON Schemas for request validation ---
 
@@ -48,10 +51,19 @@ const humanTokenSchema = {
 // Simple in-memory rate limiter for human token endpoint
 const HUMAN_TOKEN_RATE_WINDOW_MS = 60_000; // 1 minute
 const HUMAN_TOKEN_RATE_MAX = 10; // max requests per email per window
+const HUMAN_TOKEN_RATE_MAX_ENTRIES = 10_000;
 const humanTokenRateMap = new Map<string, { count: number; resetAt: number }>();
 
 function checkHumanTokenRate(email: string): boolean {
   const now = Date.now();
+
+  // Periodic cleanup: evict expired entries when map grows too large
+  if (humanTokenRateMap.size > HUMAN_TOKEN_RATE_MAX_ENTRIES) {
+    for (const [key, val] of humanTokenRateMap) {
+      if (now >= val.resetAt) humanTokenRateMap.delete(key);
+    }
+  }
+
   const entry = humanTokenRateMap.get(email);
 
   if (!entry || now >= entry.resetAt) {
@@ -142,7 +154,7 @@ export function registerTokenRoutes(
       );
 
       // Step 6: Register in Redis
-      await services.revocation.onTokenIssued(jti, serviceId, TOKEN_TTL_SECONDS);
+      await services.revocation.onTokenIssued(jti, serviceId, SERVICE_TOKEN_TTL_SECONDS);
 
       // Step 7: Update lastSeenAt
       await services.registry.updateLastSeen(serviceId);
@@ -237,7 +249,7 @@ export function registerTokenRoutes(
     '/v1/tokens/revoke',
     {
       schema: revokeTokenSchema,
-      preHandler: [requireVerikaAuth({ gcpAuth: services.gcpAuth, tokenSigner: services.tokenSigner })],
+      preHandler: [requireVerikaAuth({ gcpAuth: services.gcpAuth, tokenSigner: services.tokenSigner, revocation: services.revocation })],
     },
     async (req, reply) => {
       const identity = (req as typeof req & { verikaIdentity: { sub: string } }).verikaIdentity;
@@ -250,7 +262,13 @@ export function registerTokenRoutes(
       }
 
       if (jti) {
-        await services.revocation.revokeToken(jti, TOKEN_TTL_SECONDS);
+        // Verify the calling service owns this token
+        const owned = await services.revocation.isTokenOwnedBy(jti, identity.sub);
+        if (!owned) {
+          req.log.warn({ serviceId: identity.sub, jti }, 'Token revocation denied: not owned by caller');
+          return reply.code(403).send({ error: 'Token does not belong to this service' });
+        }
+        await services.revocation.revokeToken(jti, MAX_TOKEN_TTL_SECONDS);
         req.log.info({ serviceId: identity.sub, jti }, 'Token revoked');
         return reply.send({ revokedCount: 1 });
       }
