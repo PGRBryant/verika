@@ -6,14 +6,14 @@ This roadmap tracks the phased rollout of Verika across the ecosystem. V1 is the
 
 ## Phase 0 — Preparation
 
-**Status**: Pending — requires changes in MystWeaver and Room 404 repos, not Verika.
+**Status**: Complete.
 
 **Goal**: Zero behavior changes. Prepare existing services for Verika integration.
 
-- [ ] Add `VERIKA_ENDPOINT` and `VERIKA_SERVICE_ID` env vars to MystWeaver and Room 404 (set but unused)
-- [ ] Add `@internal/verika` as optional dependency in MystWeaver and Room 404
-- [ ] Add `TODO(verika)` comments at every auth decision point in existing services
-- [ ] Add `identity` param option to `MystweaverClient` constructor (accepts `VerikaClient`, falls through to SDK key if absent)
+- [x] Add `VERIKA_ENDPOINT` and `VERIKA_SERVICE_ID` env vars to MystWeaver and Room 404 (set but unused)
+- [x] Add `@internal/verika` as optional dependency in MystWeaver and Room 404
+- [x] Add `TODO(verika)` comments at every auth decision point in existing services
+- [x] Add `identity` param option to `MystweaverClient` constructor (accepts `VerikaClient`, falls through to SDK key if absent)
 - [ ] See: [examples/phase0-todo-comments.ts](examples/phase0-todo-comments.ts)
 
 **Exit criteria**: All services compile with Verika env vars set. No behavior changes. No new dependencies in the hot path.
@@ -22,7 +22,7 @@ This roadmap tracks the phased rollout of Verika across the ecosystem. V1 is the
 
 ## Phase 1 — Verika Live, Observation Mode
 
-**Status**: Security foundations complete. Core deployment complete (infrastructure live, pending Phase 0 in consuming services).
+**Status**: Complete.
 
 **Goal**: Verika API running in production with correct security foundations. SDK imported and instantiated. Logging what it *would* do without enforcing anything.
 
@@ -30,8 +30,8 @@ This roadmap tracks the phased rollout of Verika across the ecosystem. V1 is the
 - [x] Deploy Verika API to Cloud Run (`verika-490105` project)
 - [x] Provision GCP infrastructure via Terraform (KMS, Firestore, VPC connector) — Redis pending VPC peering with room404
 - [x] Seed service registry with all 5 services
-- [ ] Run `verika.ready()` in each service at startup
-- [ ] SDK logs authentication decisions but does **not** enforce them
+- [x] Run `verika.ready()` in each service at startup
+- [x] SDK logs authentication decisions but does **not** enforce them
 - [x] Verify audit log populates correctly
 - [x] Monitor health endpoint and alerting (uptime check + email alerts configured)
 

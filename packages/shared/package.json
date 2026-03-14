@@ -10,6 +10,6 @@
   },
   "license": "Apache-2.0",
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+    "registry": "https://us-east1-npm.pkg.dev/verika-490105/verika-packages/"
   }
 }

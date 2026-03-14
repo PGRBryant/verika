@@ -4,6 +4,11 @@ on:
   push:
     tags: ['v*']
 
+env:
+  PROJECT_ID: verika-490105
+  REGION: us-east1
+  NPM_REGISTRY: us-east1-npm.pkg.dev/verika-490105/verika-packages
+
 jobs:
   publish:
     name: Publish @internal/verika
@@ -11,18 +16,35 @@ jobs:
 
     permissions:
       contents: read
-      packages: write
+      id-token: write
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: verika-api@verika-490105.iam.gserviceaccount.com
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-          registry-url: 'https://npm.pkg.github.com'
+
+      - name: Configure npm for Artifact Registry
+        run: |
+          gcloud artifacts print-settings npm \
+            --project=${{ env.PROJECT_ID }} \
+            --repository=verika-packages \
+            --location=${{ env.REGION }} \
+            --scope=@internal \
+            >> .npmrc
 
       - name: Install dependencies
         run: npm ci
@@ -33,15 +55,11 @@ jobs:
       - name: Build SDK
         run: npm run build --workspace=@internal/verika
 
-      - name: Publish shared types to GitHub Packages
+      - name: Publish shared types to Artifact Registry
         run: npm publish --workspace=@internal/verika-shared
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish SDK to GitHub Packages
+      - name: Publish SDK to Artifact Registry
         run: npm publish --workspace=@internal/verika
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Notify consuming projects
         uses: peter-evans/repository-dispatch@v3
