@@ -64,7 +64,10 @@ jobs:
             --region ${{ env.REGION }} \
             --format 'value(status.url)')
 
-          HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${SERVICE_URL}/ready")
+          TOKEN=$(gcloud auth print-identity-token)
+          HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer ${TOKEN}" \
+            "${SERVICE_URL}/ready")
 
           if [ "$HEALTH_STATUS" != "200" ]; then
             echo "Smoke test failed with status $HEALTH_STATUS"
