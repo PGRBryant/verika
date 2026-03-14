@@ -60,17 +60,18 @@ jobs:
 
       - name: Smoke test
         run: |
-          SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
+          REVISION=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
             --region ${{ env.REGION }} \
-            --format 'value(status.url)')
+            --format 'value(status.latestReadyRevisionName)')
 
-          TOKEN=$(gcloud auth print-access-token)
-          HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            -H "Authorization: Bearer ${TOKEN}" \
-            "${SERVICE_URL}/ready")
+          echo "Checking revision: ${REVISION}"
 
-          if [ "$HEALTH_STATUS" != "200" ]; then
-            echo "Smoke test failed with status $HEALTH_STATUS"
+          READY=$(gcloud run revisions describe "${REVISION}" \
+            --region ${{ env.REGION }} \
+            --format 'value(status.conditions[0].status)')
+
+          if [ "$READY" != "True" ]; then
+            echo "Smoke test failed: revision ${REVISION} is not ready (status: ${READY})"
             echo "Rolling back to previous revision..."
 
             PREV_REVISION=$(gcloud run revisions list \
@@ -86,4 +87,4 @@ jobs:
             exit 1
           fi
 
-          echo "Smoke test passed"
+          echo "Smoke test passed: revision ${REVISION} is ready"
