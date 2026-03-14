@@ -39,12 +39,9 @@ jobs:
 
       - name: Configure npm for Artifact Registry
         run: |
-          gcloud artifacts print-settings npm \
-            --project=${{ env.PROJECT_ID }} \
-            --repository=verika-packages \
-            --location=${{ env.REGION }} \
-            --scope=@internal \
-            >> .npmrc
+          ACCESS_TOKEN=$(gcloud auth print-access-token)
+          npm config set @internal:registry "https://${{ env.NPM_REGISTRY }}/"
+          npm config set "//${{ env.NPM_REGISTRY }}/:_authToken" "$ACCESS_TOKEN"
 
       - name: Install dependencies
         run: npm ci
