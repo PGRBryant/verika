@@ -17,6 +17,7 @@ export interface ServiceTokenPayload {
 export interface HumanTokenPayload {
   iss: 'verika';
   sub: string;
+  aud: string;
   email: string;
   roles: string[];
   iat: number;

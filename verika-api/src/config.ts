@@ -10,9 +10,12 @@ export interface VerikaApiConfig {
   environment: 'development' | 'staging' | 'production';
   /** The public URL of this Verika API instance. Used as the expected audience for GCP identity tokens. */
   selfUrl: string;
+  /** Allowed email domains for human token issuance. Empty array = all domains allowed. */
+  allowedHumanDomains: string[];
 }
 
 export function loadConfig(): VerikaApiConfig {
+  const domainsEnv = process.env['VERIKA_ALLOWED_HUMAN_DOMAINS'] ?? '';
   return {
     port: parseInt(process.env['PORT'] ?? '8080', 10),
     projectId: process.env['GCP_PROJECT_ID'] ?? 'verika-prod',
@@ -24,5 +27,6 @@ export function loadConfig(): VerikaApiConfig {
     firestoreDatabase: process.env['FIRESTORE_DATABASE'] ?? 'verika-registry',
     environment: (process.env['NODE_ENV'] as VerikaApiConfig['environment']) ?? 'development',
     selfUrl: process.env['VERIKA_SELF_URL'] ?? 'https://verika-api-prod.run.app',
+    allowedHumanDomains: domainsEnv ? domainsEnv.split(',').map((d) => d.trim().toLowerCase()) : [],
   };
 }

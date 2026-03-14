@@ -4,7 +4,9 @@ This roadmap tracks the phased rollout of Verika across the ecosystem. V1 is the
 
 ---
 
-## Phase 0 — Preparation (Current)
+## Phase 0 — Preparation
+
+**Status**: Pending — requires changes in MystWeaver and Room 404 repos, not Verika.
 
 **Goal**: Zero behavior changes. Prepare existing services for Verika integration.
 
@@ -20,9 +22,11 @@ This roadmap tracks the phased rollout of Verika across the ecosystem. V1 is the
 
 ## Phase 1 — Verika Live, Observation Mode
 
+**Status**: Security foundations complete. Core deployment pending (infrastructure + operational).
+
 **Goal**: Verika API running in production with correct security foundations. SDK imported and instantiated. Logging what it *would* do without enforcing anything.
 
-### Core deployment
+### Core deployment (operational — requires live GCP infrastructure)
 - [ ] Deploy Verika API to Cloud Run (`verika-prod` project)
 - [ ] Provision GCP infrastructure via Terraform (KMS, Firestore, VPC peering)
 - [ ] Seed service registry with all 5 services
@@ -43,9 +47,11 @@ This roadmap tracks the phased rollout of Verika across the ecosystem. V1 is the
 
 ## Phase 2 — Internal Service-to-Service
 
+**Status**: Policy enforcement complete. Service integration pending (requires changes in Room 404 + MystWeaver repos).
+
 **Goal**: All internal service-to-service calls use Verika tokens. External callers (SDK keys) unaffected. Policies are enforced, not just documented.
 
-### Service integration
+### Service integration (operational — requires changes in consuming services)
 - [ ] Room 404 Game Server → AI Service: Verika tokens on all outbound calls
 - [ ] Room 404 Game Server → MystWeaver: Verika tokens via `MystweaverClient({ identity: verika })`
 - [ ] MystWeaver API validates Verika tokens on SDK routes (two-path auth: JWT + SDK key)
@@ -67,26 +73,39 @@ This roadmap tracks the phased rollout of Verika across the ecosystem. V1 is the
 
 ## Phase 3 — Presenter Human Auth
 
-**Goal**: Unified presenter identity across Room 404 and Varunai, with proper authorization gates on human token issuance.
+**Status**: Endpoint hardening complete. Core flow pending (requires Varunai client-side implementation).
 
-### Core flow
-- [ ] Presenter flow: Google OAuth → `verika.exchangeGoogleToken()` → Verika human token
-- [ ] Room 404 `/present` route uses Verika human token with `room404.presenter` role
-- [ ] Presenter WS messages validated via `verika.validateHumanToken()`
+**Goal**: Presenter authenticates via Verika with a single human token scoped to Varunai. Varunai proxies all downstream calls (Room 404 session data, MystWeaver flags, etc.) using its own service tokens. No human tokens are presented directly to Room 404 or MystWeaver.
+
+### Architecture decision
+The presenter's browser only talks to Varunai. Varunai validates the human token (`aud: 'varunai'`) and proxies downstream:
+- Room 404 session data → Varunai service token with `session.read`
+- MystWeaver flag writes → Varunai service token with `flag.write`
+- MystWeaver metrics/SSE → Varunai service token with `metrics.read`, `stream.subscribe`
+
+This means Room 404 and MystWeaver never need human token validation — they already accept Varunai's service tokens (Phase 2). The `extends: 'room404.presenter'` role in varunai's policy is used by Varunai internally to authorize presenter actions (e.g., "can this user view session data?").
+
+### Core flow (requires Varunai client-side implementation)
+- [ ] Presenter flow: Google OAuth → `verika.exchangeGoogleToken()` → Verika human token (`aud: 'varunai'`)
+- [ ] Varunai validates human token via `verika.validateHumanToken(token, { requiredRole: 'varunai.presenter' })`
+- [ ] Varunai proxies Room 404 session reads using its service token (`session.read` capability)
+- [ ] Varunai proxies MystWeaver flag writes using its service token (`flag.write` capability)
 - [ ] MystWeaver admin retains Google IAP (unchanged — correct for V1)
 - [ ] Human tokens stored in sessionStorage (client-side)
 - [ ] 60-minute sliding window TTL on activity
 
 ### Human token endpoint hardening
-- [ ] **Add authorization to `POST /v1/tokens/human`**: Currently any valid Google account gets all presenter roles. Add: (1) allowed-email-domain or allowed-email-list check, (2) role assignment from policy (not the hardcoded `PRESENTER_ROLES` constant), (3) rate limiting on the endpoint.
-- [ ] **Add `aud` claim to human tokens**: Same rationale as service tokens — a human token for Room 404 should not be accepted by MystWeaver admin routes.
-- [ ] **Revocation check for human tokens**: `validateHumanToken()` in the SDK does not check Redis revocation today. It must, using the same path as service token validation.
+- [x] **Add authorization to `POST /v1/tokens/human`**: Email domain check via `VERIKA_ALLOWED_HUMAN_DOMAINS` env var. Role assignment from policy `humanRoles` (removed hardcoded `PRESENTER_ROLES`). Per-email rate limiting (10 req/min). Route now requires `targetService` in body.
+- [x] **Add `aud` claim to human tokens**: Human tokens include `targetService` as audience. SDK verifies `aud` matches `this.options.service` in `validateHumanToken()`. `exchangeGoogleToken()` sends `targetService` automatically.
+- [x] **Revocation check for human tokens**: `validateHumanToken()` in the SDK now checks Redis revocation using the same path as service token validation, including fail-open/fail-closed mode support.
 
-**Exit criteria**: Presenter opens Room 404 and Varunai with a single Verika human token. MystWeaver admin unchanged. Human tokens are only issued to authorized users with policy-driven roles. Human tokens are audience-restricted and revocable.
+**Exit criteria**: Presenter authenticates once via Google OAuth, gets a Verika human token scoped to Varunai. Varunai validates the token and proxies all downstream calls via service-to-service auth. MystWeaver admin unchanged. Human tokens are only issued to authorized users with policy-driven roles. Human tokens are audience-restricted and revocable.
 
 ---
 
 ## Phase 4 — Varunai Registration
+
+**Status**: Pending — entirely operational (IAM bindings, registry seeding, live verification).
 
 **Goal**: Varunai fully registered and ready to build against Verika.
 

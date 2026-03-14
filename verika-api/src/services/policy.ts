@@ -164,6 +164,31 @@ export class PolicyService {
     return { allowed: true, capabilities };
   }
 
+  /**
+   * Resolve the human roles a user should receive for a given target service.
+   *
+   * Walks the target service's `humanRoles` map and collects all role names.
+   * If a role `extends` another role, that parent is included too.
+   */
+  resolveHumanRoles(targetService: string): string[] {
+    const targetPolicy = this.policies.get(targetService);
+    if (!targetPolicy?.humanRoles) {
+      return [];
+    }
+
+    const roles: string[] = [];
+
+    for (const [roleName, roleDef] of Object.entries(targetPolicy.humanRoles)) {
+      roles.push(roleName);
+
+      if (roleDef.extends && !roles.includes(roleDef.extends)) {
+        roles.push(roleDef.extends);
+      }
+    }
+
+    return roles;
+  }
+
   getPolicy(serviceId: string): ServicePolicy | undefined {
     return this.policies.get(serviceId);
   }

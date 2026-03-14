@@ -24,6 +24,7 @@ interface ServiceTokenClaims {
 interface HumanTokenClaims {
   iss: 'verika';
   sub: string;
+  aud: string;
   email: string;
   roles: string[];
   iat: number;
@@ -82,6 +83,7 @@ export class TokenSignerService {
     userId: string,
     email: string,
     roles: string[],
+    targetService: string,
   ): Promise<{ token: string; expiresAt: number; jti: string }> {
     const now = Math.floor(Date.now() / 1000);
     const jti = `tok_human_${crypto.randomBytes(6).toString('hex')}`;
@@ -89,6 +91,7 @@ export class TokenSignerService {
     const claims: HumanTokenClaims = {
       iss: 'verika',
       sub: userId,
+      aud: targetService,
       email,
       roles,
       iat: now,

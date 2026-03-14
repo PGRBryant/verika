@@ -181,7 +181,7 @@ export class VerikaClient {
     };
   }
 
-  /** Validate a Verika human token. */
+  /** Validate a Verika human token. Verifies signature, audience, revocation status, and roles. */
   async validateHumanToken(
     token: string,
     options?: { requiredRole?: string },
@@ -190,13 +190,34 @@ export class VerikaClient {
 
     let payload: jose.JWTPayload;
     try {
-      const result = await jose.jwtVerify(token, keySet, { issuer: 'verika' });
+      const result = await jose.jwtVerify(token, keySet, {
+        issuer: 'verika',
+        audience: this.options.service,
+      });
       payload = result.payload;
     } catch (err) {
       if (err instanceof jose.errors.JWTExpired) {
         throw new VerikaError('VERIKA_TOKEN_EXPIRED', 'Human token expired');
       }
       throw new VerikaError('VERIKA_TOKEN_INVALID_SIGNATURE', 'Invalid token signature');
+    }
+
+    // Check revocation (same path as service tokens)
+    const jti = payload['jti'] as string;
+    if (jti) {
+      const status = await this.revocationChecker.check(jti);
+      if (status === 'revoked') {
+        throw new VerikaError('VERIKA_TOKEN_REVOKED', `Human token ${jti} has been revoked`);
+      }
+      if (status === 'expired') {
+        throw new VerikaError('VERIKA_TOKEN_EXPIRED', `Human token ${jti} has expired`);
+      }
+      if (status === 'unknown' && this.options.revocationFailMode === 'closed') {
+        throw new VerikaError(
+          'VERIKA_REVOCATION_UNAVAILABLE',
+          `Revocation check unavailable for ${jti} and service is configured to fail closed`,
+        );
+      }
     }
 
     const roles = (payload['roles'] as string[]) ?? [];
@@ -212,7 +233,7 @@ export class VerikaClient {
       userId: payload['sub'] as string,
       email: payload['email'] as string,
       roles,
-      tokenId: (payload['jti'] as string) ?? '',
+      tokenId: jti ?? '',
       issuedAt: payload['iat'] as number,
       expiresAt: payload['exp'] as number,
     };
@@ -230,14 +251,14 @@ export class VerikaClient {
 
   // ─── Human Auth ────────────────────────────────────────────────────────────
 
-  /** Exchange a Google OAuth token for a Verika human token. */
+  /** Exchange a Google OAuth token for a Verika human token scoped to this service. */
   async exchangeGoogleToken(googleToken: string): Promise<string> {
     const response = await fetch(
       `${this.options.verikaEndpoint}/v1/tokens/human`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ googleToken }),
+        body: JSON.stringify({ googleToken, targetService: this.options.service }),
       },
     );
 

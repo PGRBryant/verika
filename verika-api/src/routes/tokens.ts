@@ -5,6 +5,7 @@ import type { TokenSignerService } from '../services/token-signer.js';
 import type { RevocationService } from '../services/revocation.js';
 import type { PolicyService } from '../services/policy.js';
 import type { GcpAuthService, GcpIdentity } from '../services/gcp-auth.js';
+import type { VerikaApiConfig } from '../config.js';
 import { requireGcpAuth, requireVerikaAuth } from '../middleware/auth.js';
 
 interface TokenServices {
@@ -13,10 +14,8 @@ interface TokenServices {
   revocation: RevocationService;
   policy: PolicyService;
   gcpAuth: GcpAuthService;
+  config: VerikaApiConfig;
 }
-
-// Presenter role mappings for Google OAuth → Verika human token
-const PRESENTER_ROLES = ['room404.presenter', 'mystweaver.viewer', 'varunai.presenter'];
 
 const TOKEN_TTL_SECONDS = 900;
 
@@ -37,13 +36,32 @@ const serviceTokenSchema = {
 const humanTokenSchema = {
   body: {
     type: 'object' as const,
-    required: ['googleToken'],
+    required: ['googleToken', 'targetService'],
     properties: {
       googleToken: { type: 'string' as const, minLength: 1, maxLength: 4096 },
+      targetService: { type: 'string' as const, minLength: 1, maxLength: 128, pattern: '^[a-z0-9-]+$' },
     },
     additionalProperties: false,
   },
 };
+
+// Simple in-memory rate limiter for human token endpoint
+const HUMAN_TOKEN_RATE_WINDOW_MS = 60_000; // 1 minute
+const HUMAN_TOKEN_RATE_MAX = 10; // max requests per email per window
+const humanTokenRateMap = new Map<string, { count: number; resetAt: number }>();
+
+function checkHumanTokenRate(email: string): boolean {
+  const now = Date.now();
+  const entry = humanTokenRateMap.get(email);
+
+  if (!entry || now >= entry.resetAt) {
+    humanTokenRateMap.set(email, { count: 1, resetAt: now + HUMAN_TOKEN_RATE_WINDOW_MS });
+    return true;
+  }
+
+  entry.count++;
+  return entry.count <= HUMAN_TOKEN_RATE_MAX;
+}
 
 const revokeTokenSchema = {
   body: {
@@ -143,25 +161,64 @@ export function registerTokenRoutes(
    * POST /v1/tokens/human
    * Exchange Google OAuth token for Verika human token.
    * Auth: none (this IS the auth endpoint)
+   *
+   * Authorization checks:
+   *   1. Google OAuth token must be valid
+   *   2. Email domain must be in VERIKA_ALLOWED_HUMAN_DOMAINS (if configured)
+   *   3. Target service must exist and have humanRoles in its policy
+   *   4. Per-email rate limiting
    */
-  app.post<{ Body: { googleToken: string } }>(
+  app.post<{ Body: { googleToken: string; targetService: string } }>(
     '/v1/tokens/human',
     { schema: humanTokenSchema },
     async (req, reply) => {
-      const { googleToken } = req.body;
+      const { googleToken, targetService } = req.body;
 
       try {
+        // Step 1: Validate Google OAuth token
         const { userId, email } = await services.gcpAuth.validateGoogleOAuthToken(googleToken);
+
+        // Step 2: Check email domain authorization
+        const { allowedHumanDomains } = services.config;
+        if (allowedHumanDomains.length > 0) {
+          const emailDomain = email.split('@')[1]?.toLowerCase();
+          if (!emailDomain || !allowedHumanDomains.includes(emailDomain)) {
+            req.log.warn({ email, emailDomain, allowedHumanDomains }, 'Human token denied: email domain not allowed');
+            return reply.code(403).send({ error: 'Email domain not authorized for human token issuance' });
+          }
+        }
+
+        // Step 3: Rate limiting per email
+        if (!checkHumanTokenRate(email)) {
+          req.log.warn({ email }, 'Human token denied: rate limit exceeded');
+          return reply.code(429).send({ error: 'Rate limit exceeded. Try again later.' });
+        }
+
+        // Step 4: Verify target service exists
+        const targetRegistration = await services.registry.getService(targetService);
+        if (!targetRegistration) {
+          return reply.code(404).send({ error: `Target service ${targetService} not registered` });
+        }
+
+        // Step 5: Resolve roles from policy (not hardcoded)
+        const roles = services.policy.resolveHumanRoles(targetService);
+        if (roles.length === 0) {
+          req.log.warn({ targetService }, 'Human token denied: no human roles defined for target service');
+          return reply.code(403).send({ error: `No human roles defined for service ${targetService}` });
+        }
+
+        // Step 6: Sign audience-restricted human token
         const { token, expiresAt, jti } = await services.tokenSigner.signHumanToken(
           userId,
           email,
-          PRESENTER_ROLES,
+          roles,
+          targetService,
         );
 
-        // Register human token in revocation list
+        // Step 7: Register human token in revocation list
         await services.revocation.onTokenIssued(jti, `human:${userId}`, 3600);
 
-        req.log.info({ userId, email, jti }, 'Human token issued');
+        req.log.info({ userId, email, jti, targetService, roles }, 'Human token issued');
 
         return reply.send({ token, expiresAt });
       } catch (err) {

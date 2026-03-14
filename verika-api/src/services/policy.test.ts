@@ -157,6 +157,34 @@ describe('PolicyService', () => {
     });
   });
 
+  describe('resolveHumanRoles', () => {
+    it('returns roles for room404-game-server', () => {
+      const roles = service.resolveHumanRoles('room404-game-server');
+      expect(roles).toEqual(['room404.presenter']);
+    });
+
+    it('returns roles for varunai including extended role', () => {
+      const roles = service.resolveHumanRoles('varunai');
+      // varunai.presenter extends room404.presenter, so both are included
+      expect(roles).toEqual(['varunai.presenter', 'room404.presenter']);
+    });
+
+    it('returns roles for mystweaver-api', () => {
+      const roles = service.resolveHumanRoles('mystweaver-api');
+      expect(roles).toEqual(['mystweaver.admin', 'mystweaver.viewer']);
+    });
+
+    it('returns empty array for service with no humanRoles', () => {
+      const roles = service.resolveHumanRoles('room404-ai-service');
+      expect(roles).toEqual([]);
+    });
+
+    it('returns empty array for unknown service', () => {
+      const roles = service.resolveHumanRoles('nonexistent');
+      expect(roles).toEqual([]);
+    });
+  });
+
   describe('getPolicy', () => {
     it('returns policy for known service', () => {
       const policy = service.getPolicy('room404-game-server');
