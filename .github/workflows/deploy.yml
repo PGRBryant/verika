@@ -64,7 +64,7 @@ jobs:
             --region ${{ env.REGION }} \
             --format 'value(status.url)')
 
-          TOKEN=$(gcloud auth print-identity-token)
+          TOKEN=$(gcloud auth print-access-token)
           HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
             -H "Authorization: Bearer ${TOKEN}" \
             "${SERVICE_URL}/ready")
