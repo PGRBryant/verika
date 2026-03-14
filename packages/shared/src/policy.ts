@@ -9,11 +9,6 @@ export interface ServicePolicy {
   canCall: {
     service: string;
     capabilities: string[];
-    rateLimit: {
-      requests: number;
-      /** e.g. "1m", "1h" */
-      window: string;
-    };
   }[];
   humanRoles?: {
     [role: string]: {

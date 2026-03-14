@@ -21,6 +21,7 @@ import * as crypto from 'node:crypto';
 
 const verika = new VerikaClient({
   service: 'mystweaver-api',
+  targetService: 'verika',
   verikaEndpoint: process.env['VERIKA_ENDPOINT']!,
 });
 

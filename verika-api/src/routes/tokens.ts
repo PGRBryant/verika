@@ -3,6 +3,7 @@ import * as crypto from 'node:crypto';
 import type { RegistryService } from '../services/registry.js';
 import type { TokenSignerService } from '../services/token-signer.js';
 import type { RevocationService } from '../services/revocation.js';
+import type { PolicyService } from '../services/policy.js';
 import type { GcpAuthService, GcpIdentity } from '../services/gcp-auth.js';
 import { requireGcpAuth, requireVerikaAuth } from '../middleware/auth.js';
 
@@ -10,6 +11,7 @@ interface TokenServices {
   registry: RegistryService;
   tokenSigner: TokenSignerService;
   revocation: RevocationService;
+  policy: PolicyService;
   gcpAuth: GcpAuthService;
 }
 
@@ -17,6 +19,42 @@ interface TokenServices {
 const PRESENTER_ROLES = ['room404.presenter', 'mystweaver.viewer', 'varunai.presenter'];
 
 const TOKEN_TTL_SECONDS = 900;
+
+// --- JSON Schemas for request validation ---
+
+const serviceTokenSchema = {
+  body: {
+    type: 'object' as const,
+    required: ['serviceId', 'targetService'],
+    properties: {
+      serviceId: { type: 'string' as const, minLength: 1, maxLength: 128, pattern: '^[a-z0-9-]+$' },
+      targetService: { type: 'string' as const, minLength: 1, maxLength: 128, pattern: '^[a-z0-9-]+$' },
+    },
+    additionalProperties: false,
+  },
+};
+
+const humanTokenSchema = {
+  body: {
+    type: 'object' as const,
+    required: ['googleToken'],
+    properties: {
+      googleToken: { type: 'string' as const, minLength: 1, maxLength: 4096 },
+    },
+    additionalProperties: false,
+  },
+};
+
+const revokeTokenSchema = {
+  body: {
+    type: 'object' as const,
+    properties: {
+      jti: { type: 'string' as const, minLength: 1, maxLength: 128, pattern: '^tok_' },
+      revokeAll: { type: 'boolean' as const },
+    },
+    additionalProperties: false,
+  },
+};
 
 export function registerTokenRoutes(
   app: FastifyInstance,
@@ -27,13 +65,14 @@ export function registerTokenRoutes(
    * Issue a service token.
    * Auth: GCP Workload Identity (bootstrap — not a Verika token)
    */
-  app.post<{ Body: { serviceId: string } }>(
+  app.post<{ Body: { serviceId: string; targetService: string } }>(
     '/v1/tokens/service',
     {
+      schema: serviceTokenSchema,
       preHandler: [requireGcpAuth({ gcpAuth: services.gcpAuth, tokenSigner: services.tokenSigner })],
     },
     async (req, reply) => {
-      const { serviceId } = req.body;
+      const { serviceId, targetService } = req.body;
       const gcpIdentity = (req as typeof req & { gcpIdentity: GcpIdentity }).gcpIdentity;
 
       // Step 1: Validate GCP identity matches claimed serviceId
@@ -54,14 +93,37 @@ export function registerTokenRoutes(
         });
       }
 
-      // Step 3-4: Load capabilities and sign JWT
+      // Step 3: Verify target service exists
+      const targetRegistration = await services.registry.getService(targetService);
+      if (!targetRegistration) {
+        return reply.code(404).send({ error: `Target service ${targetService} not registered` });
+      }
+
+      // Step 4: Resolve capabilities via policy intersection
+      const decision = services.policy.resolveCapabilities(
+        serviceId,
+        targetService,
+        targetRegistration.grantedCapabilities,
+      );
+
+      if (!decision.allowed) {
+        req.log.warn(
+          { serviceId, targetService, reason: decision.reason },
+          'Token issuance denied by policy',
+        );
+        return reply.code(403).send({ error: decision.reason });
+      }
+
+      // Step 5: Sign JWT with policy-scoped capabilities
       const instanceId = crypto.randomBytes(4).toString('hex');
       const { token, expiresAt, jti } = await services.tokenSigner.signServiceToken(
         registration,
         instanceId,
+        targetService,
+        decision.capabilities,
       );
 
-      // Step 5-6: Register in Redis
+      // Step 6: Register in Redis
       await services.revocation.onTokenIssued(jti, serviceId, TOKEN_TTL_SECONDS);
 
       // Step 7: Update lastSeenAt
@@ -69,7 +131,7 @@ export function registerTokenRoutes(
 
       // Step 8: Return token
       req.log.info(
-        { serviceId, jti, project: registration.project },
+        { serviceId, targetService, jti, caps: decision.capabilities, project: registration.project },
         'Service token issued',
       );
 
@@ -84,6 +146,7 @@ export function registerTokenRoutes(
    */
   app.post<{ Body: { googleToken: string } }>(
     '/v1/tokens/human',
+    { schema: humanTokenSchema },
     async (req, reply) => {
       const { googleToken } = req.body;
 
@@ -116,6 +179,7 @@ export function registerTokenRoutes(
   app.post<{ Body: { jti?: string; revokeAll?: boolean } }>(
     '/v1/tokens/revoke',
     {
+      schema: revokeTokenSchema,
       preHandler: [requireVerikaAuth({ gcpAuth: services.gcpAuth, tokenSigner: services.tokenSigner })],
     },
     async (req, reply) => {

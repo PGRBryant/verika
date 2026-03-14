@@ -17,6 +17,7 @@ import { VerikaClient } from '@internal/verika';
 
 const verika = new VerikaClient({
   service: 'room404-game-server',
+  targetService: 'mystweaver-api',
   verikaEndpoint: process.env['VERIKA_ENDPOINT']!,
 });
 

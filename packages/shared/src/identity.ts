@@ -3,6 +3,7 @@
 export interface ServiceTokenPayload {
   iss: 'verika';
   sub: string;
+  aud: string;
   ver: string;
   proj: string;
   region: string;
@@ -48,7 +49,15 @@ export interface ValidatedHumanIdentity {
 
 export interface VerikaClientOptions {
   service: string;
+  /** The default target service for cached token issuance. */
+  targetService: string;
   verikaEndpoint: string;
+  /**
+   * What to do when Redis is unavailable for revocation checks.
+   *   'open'   — accept the token (default, favors availability)
+   *   'closed' — reject the token (favors security)
+   */
+  revocationFailMode?: 'open' | 'closed';
   mtls?: {
     enabled: boolean;
     certTTL?: number;

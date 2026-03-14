@@ -16,7 +16,6 @@ interface ServicePolicy {
   canCall: {
     service: string;
     capabilities: string[];
-    rateLimit: { requests: number; window: string };
   }[];
   humanRoles?: {
     [role: string]: { canPerform: string[]; extends?: string };
@@ -108,10 +107,6 @@ async function validatePolicy(filePath: string): Promise<void> {
       }
     }
 
-    // Validate rate limit
-    if (!call.rateLimit) error(`Missing rateLimit for call to ${call.service}`);
-    if (typeof call.rateLimit?.requests !== 'number') error('rateLimit.requests must be a number');
-    if (!call.rateLimit?.window) error('rateLimit.window is required');
   }
 
   console.log(`  OK`);

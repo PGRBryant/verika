@@ -57,7 +57,10 @@ export class VerikaClient {
 
   // ─── Outbound ──────────────────────────────────────────────────────────────
 
-  /** Returns the current cached service token. Synchronous. */
+  /**
+   * Returns the current cached service token for the default target.
+   * Synchronous — the token is pre-fetched and refreshed in the background.
+   */
   serviceToken(): string {
     if (!this.initialized) {
       throw new VerikaError('VERIKA_UNREACHABLE', 'VerikaClient not initialized — call ready() first');
@@ -66,6 +69,21 @@ export class VerikaClient {
       throw new VerikaError('VERIKA_SERVICE_REVOKED', 'Service is shutting down');
     }
     return this.tokenCache.getToken();
+  }
+
+  /**
+   * Fetch a service token scoped to a specific target service.
+   * Not cached — use for on-demand cross-service calls when the target varies.
+   */
+  async serviceTokenFor(targetService: string): Promise<string> {
+    if (!this.initialized) {
+      throw new VerikaError('VERIKA_UNREACHABLE', 'VerikaClient not initialized — call ready() first');
+    }
+    if (isInShutdown()) {
+      throw new VerikaError('VERIKA_SERVICE_REVOKED', 'Service is shutting down');
+    }
+    const { token } = await this.fetchServiceToken(targetService);
+    return token;
   }
 
   /** Look up a service in the Verika registry. */
@@ -112,7 +130,10 @@ export class VerikaClient {
 
     let payload: jose.JWTPayload;
     try {
-      const result = await jose.jwtVerify(token, keySet, { issuer: 'verika' });
+      const result = await jose.jwtVerify(token, keySet, {
+        issuer: 'verika',
+        audience: this.options.service,
+      });
       payload = result.payload;
     } catch (err) {
       if (err instanceof jose.errors.JWTExpired) {
@@ -130,6 +151,12 @@ export class VerikaClient {
       }
       if (status === 'expired') {
         throw new VerikaError('VERIKA_TOKEN_EXPIRED', `Token ${jti} has expired`);
+      }
+      if (status === 'unknown' && this.options.revocationFailMode === 'closed') {
+        throw new VerikaError(
+          'VERIKA_REVOCATION_UNAVAILABLE',
+          `Revocation check unavailable for ${jti} and service is configured to fail closed`,
+        );
       }
     }
 
@@ -254,6 +281,13 @@ export class VerikaClient {
     return createWsReauthHandler(options);
   }
 
+  // ─── Observability ─────────────────────────────────────────────────────────
+
+  /** Revocation check stats — wire into your metrics exporter. */
+  get revocationStats() {
+    return this.revocationChecker.stats;
+  }
+
   // ─── Lifecycle ─────────────────────────────────────────────────────────────
 
   /** Initialize the client. Must complete before serving traffic. */
@@ -282,13 +316,47 @@ export class VerikaClient {
 
   // ─── Private ───────────────────────────────────────────────────────────────
 
-  private async fetchServiceToken(): Promise<{ token: string; expiresAt: number }> {
+  /**
+   * Fetches a GCP identity token from the metadata server.
+   * The audience is set to the Verika API endpoint so the token is scoped.
+   */
+  private async fetchGcpIdentityToken(): Promise<string> {
+    const audience = this.options.verikaEndpoint;
+    const metadataUrl =
+      `http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity?audience=${encodeURIComponent(audience)}`;
+
+    const response = await fetch(metadataUrl, {
+      headers: { 'Metadata-Flavor': 'Google' },
+    });
+
+    if (!response.ok) {
+      throw new VerikaError(
+        'VERIKA_UNREACHABLE',
+        `Failed to fetch GCP identity token: ${response.status}. ` +
+          'Ensure this service is running on GCP with a service account.',
+      );
+    }
+
+    return response.text();
+  }
+
+  private async fetchServiceToken(
+    targetService?: string,
+  ): Promise<{ token: string; expiresAt: number }> {
+    const gcpToken = await this.fetchGcpIdentityToken();
+
     const response = await fetch(
       `${this.options.verikaEndpoint}/v1/tokens/service`,
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ serviceId: this.options.service }),
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${gcpToken}`,
+        },
+        body: JSON.stringify({
+          serviceId: this.options.service,
+          targetService: targetService ?? this.options.targetService,
+        }),
       },
     );
 

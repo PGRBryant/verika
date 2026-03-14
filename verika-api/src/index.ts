@@ -8,6 +8,7 @@ import { RegistryService } from './services/registry.js';
 import { TokenSignerService } from './services/token-signer.js';
 import { RevocationService } from './services/revocation.js';
 import { GcpAuthService } from './services/gcp-auth.js';
+import { PolicyService } from './services/policy.js';
 
 const config = loadConfig();
 
@@ -21,8 +22,9 @@ const registry = new RegistryService(config);
 const tokenSigner = new TokenSignerService(config);
 const revocation = new RevocationService(config);
 const gcpAuth = new GcpAuthService(config);
+const policy = new PolicyService();
 
-const services = { registry, tokenSigner, revocation, gcpAuth, config };
+const services = { registry, tokenSigner, revocation, gcpAuth, policy, config };
 
 registerHealthRoute(app, services);
 registerJwksRoute(app, services);

@@ -18,10 +18,6 @@ export const policy: ServicePolicy = {
     {
       service: 'mystweaver-api',
       capabilities: ['flag.evaluate', 'flag.evaluate.bulk', 'events.track'],
-      rateLimit: {
-        requests: 1000,
-        window: '1m',
-      },
     },
     {
       service: 'room404-ai-service',
@@ -31,10 +27,6 @@ export const policy: ServicePolicy = {
         'content.judge',
         'content.generate.icon',
       ],
-      rateLimit: {
-        requests: 500,
-        window: '1m',
-      },
     },
   ],
 

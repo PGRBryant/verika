@@ -22,10 +22,12 @@ export interface GcpIdentity {
 export class GcpAuthService {
   private readonly oauthClient: OAuth2Client;
   private readonly logger: Logger;
+  private readonly expectedAudience: string;
 
-  constructor(_config: VerikaApiConfig) {
+  constructor(config: VerikaApiConfig) {
     this.oauthClient = new OAuth2Client();
     this.logger = pino({ name: 'gcp-auth-service' });
+    this.expectedAudience = config.selfUrl;
   }
 
   /**
@@ -42,7 +44,7 @@ export class GcpAuthService {
     try {
       const ticket = await this.oauthClient.verifyIdToken({
         idToken: token,
-        audience: undefined, // Accept any audience — we verify the SA email
+        audience: this.expectedAudience,
       });
 
       const payload = ticket.getPayload();

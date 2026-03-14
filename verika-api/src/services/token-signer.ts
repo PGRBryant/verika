@@ -10,6 +10,7 @@ const HUMAN_TOKEN_TTL_SECONDS = 3600; // 60 minutes
 interface ServiceTokenClaims {
   iss: 'verika';
   sub: string;
+  aud: string;
   ver: string;
   proj: string;
   region: string;
@@ -52,15 +53,17 @@ export class TokenSignerService {
   async signServiceToken(
     registration: ServiceRegistration,
     instanceId: string,
+    targetService: string,
+    capabilities: string[],
     region: string = 'us-east1',
   ): Promise<{ token: string; expiresAt: number; jti: string }> {
     const now = Math.floor(Date.now() / 1000);
     const jti = `tok_${crypto.randomBytes(6).toString('hex')}`;
-    const capabilities = registration.grantedCapabilities.map((g) => g.capability);
 
     const claims: ServiceTokenClaims = {
       iss: 'verika',
       sub: registration.id,
+      aud: targetService,
       ver: registration.version,
       proj: registration.project,
       region,

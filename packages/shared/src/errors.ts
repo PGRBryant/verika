@@ -7,6 +7,7 @@ export type VerikaErrorCode =
   | 'VERIKA_SERVICE_NOT_FOUND'
   | 'VERIKA_SERVICE_REVOKED'
   | 'VERIKA_UNREACHABLE'
+  | 'VERIKA_REVOCATION_UNAVAILABLE'
   | 'VERIKA_EXCHANGE_FAILED';
 
 export class VerikaError extends Error {

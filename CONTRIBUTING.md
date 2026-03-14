@@ -43,7 +43,6 @@ export const policy: ServicePolicy = {
     {
       service: 'target-service',
       capabilities: ['capability.name'],
-      rateLimit: { requests: 100, window: '1m' },
     },
   ],
 };

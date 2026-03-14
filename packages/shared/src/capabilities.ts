@@ -37,9 +37,6 @@ export const IDENTITY_TOKEN_REVOKE = 'identity.token.revoke' as const;
 export const REGISTRY_READ = 'registry.read' as const;
 export const REGISTRY_WRITE = 'registry.write' as const;
 
-// --- Herald ---
-export const HERALD_NOTIFY = 'herald.notify' as const;
-
 // --- Grouped by domain ---
 
 export const FlagCapabilities = {
@@ -91,10 +88,6 @@ export const RegistryCapabilities = {
   WRITE: REGISTRY_WRITE,
 } as const;
 
-export const HeraldCapabilities = {
-  NOTIFY: HERALD_NOTIFY,
-} as const;
-
 export const AllCapabilities = {
   Flag: FlagCapabilities,
   Events: EventsCapabilities,
@@ -106,5 +99,4 @@ export const AllCapabilities = {
   Session: SessionCapabilities,
   Identity: IdentityCapabilities,
   Registry: RegistryCapabilities,
-  Herald: HeraldCapabilities,
 } as const;

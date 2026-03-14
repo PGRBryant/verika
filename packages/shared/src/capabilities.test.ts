@@ -8,7 +8,6 @@ import {
   SESSION_READ,
   IDENTITY_TOKEN_ISSUE,
   REGISTRY_READ,
-  HERALD_NOTIFY,
   AllCapabilities,
   FlagCapabilities,
   ContentCapabilities,
@@ -24,7 +23,6 @@ describe('Capabilities', () => {
     expect(SESSION_READ).toBe('session.read');
     expect(IDENTITY_TOKEN_ISSUE).toBe('identity.token.issue');
     expect(REGISTRY_READ).toBe('registry.read');
-    expect(HERALD_NOTIFY).toBe('herald.notify');
   });
 
   it('grouped objects match individual constants', () => {
@@ -36,7 +34,7 @@ describe('Capabilities', () => {
   it('AllCapabilities contains all domain groups', () => {
     expect(Object.keys(AllCapabilities)).toEqual([
       'Flag', 'Events', 'Content', 'Experiments', 'Audit',
-      'Metrics', 'Stream', 'Session', 'Identity', 'Registry', 'Herald',
+      'Metrics', 'Stream', 'Session', 'Identity', 'Registry',
     ]);
   });
 });

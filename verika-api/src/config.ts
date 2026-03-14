@@ -8,6 +8,8 @@ export interface VerikaApiConfig {
   redisPort: number;
   firestoreDatabase: string;
   environment: 'development' | 'staging' | 'production';
+  /** The public URL of this Verika API instance. Used as the expected audience for GCP identity tokens. */
+  selfUrl: string;
 }
 
 export function loadConfig(): VerikaApiConfig {
@@ -21,5 +23,6 @@ export function loadConfig(): VerikaApiConfig {
     redisPort: parseInt(process.env['REDIS_PORT'] ?? '6379', 10),
     firestoreDatabase: process.env['FIRESTORE_DATABASE'] ?? 'verika-registry',
     environment: (process.env['NODE_ENV'] as VerikaApiConfig['environment']) ?? 'development',
+    selfUrl: process.env['VERIKA_SELF_URL'] ?? 'https://verika-api-prod.run.app',
   };
 }

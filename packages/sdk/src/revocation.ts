@@ -1,24 +1,37 @@
 import { Redis as IORedis } from 'ioredis';
 import { type Logger } from 'pino';
 
-// TODO(verika-v2): Fail closed when service handles operations sensitive
-// enough to trade availability for security. Not warranted in V1.
-// See docs/v2-dedicated-redis.md. Estimated effort: N/A (config change).
-
 const REVOKED_PREFIX = 'verika:revoked:';
 
 export type RevocationStatus = 'active' | 'revoked' | 'expired' | 'unknown';
+
+export interface RevocationCheckerStats {
+  failOpenCount: number;
+  checkCount: number;
+  lastFailOpenAt: number | null;
+}
 
 export class RevocationChecker {
   private redis: IORedis | null = null;
   private readonly redisHost: string;
   private readonly redisPort: number;
   private readonly logger: Logger;
+  private _failOpenCount = 0;
+  private _checkCount = 0;
+  private _lastFailOpenAt: number | null = null;
 
   constructor(redisHost: string, redisPort: number, logger: Logger) {
     this.redisHost = redisHost;
     this.redisPort = redisPort;
     this.logger = logger.child({ component: 'revocation-checker' });
+  }
+
+  get stats(): RevocationCheckerStats {
+    return {
+      failOpenCount: this._failOpenCount,
+      checkCount: this._checkCount,
+      lastFailOpenAt: this._lastFailOpenAt,
+    };
   }
 
   async initialize(): Promise<void> {
@@ -54,8 +67,10 @@ export class RevocationChecker {
    * On Redis unavailable: fail open with warning log.
    */
   async check(jti: string): Promise<RevocationStatus> {
+    this._checkCount++;
+
     if (!this.redis) {
-      this.logger.warn({ jti }, 'Redis unavailable — failing open');
+      this.recordFailOpen(jti, 'Redis unavailable');
       return 'unknown';
     }
 
@@ -71,10 +86,26 @@ export class RevocationChecker {
 
       return 'expired';
     } catch (err) {
-      // Fail open with warning — V1 trades security for availability here
-      this.logger.warn({ err, jti }, 'Redis check failed — failing open');
+      this.recordFailOpen(jti, 'Redis check failed', err);
       return 'unknown';
     }
+  }
+
+  private recordFailOpen(jti: string, reason: string, err?: unknown): void {
+    this._failOpenCount++;
+    this._lastFailOpenAt = Date.now();
+    this.logger.warn(
+      {
+        jti,
+        reason,
+        err,
+        failOpenCount: this._failOpenCount,
+        failOpenRate: this._checkCount > 0
+          ? `${((this._failOpenCount / this._checkCount) * 100).toFixed(1)}%`
+          : 'N/A',
+      },
+      'Revocation check failed open',
+    );
   }
 
   async close(): Promise<void> {
