@@ -9,7 +9,7 @@ const SA_TO_SERVICE_MAP: Record<string, string> = {
   'mystweaver-api': 'mystweaver-api',
   'room404-game-server': 'room404-game-server',
   'room404-ai-service': 'room404-ai-service',
-  'varunai': 'varunai',
+  'varunai-api': 'varunai',
   'verika-api': 'verika',
 };
 
